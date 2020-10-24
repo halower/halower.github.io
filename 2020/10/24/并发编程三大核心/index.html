@@ -27,14 +27,15 @@
 <meta property="og:site_name" content="高谈风月">
 <meta property="og:description" content="「横看成岭侧成峰，远近高低各不同」，远看看轮廓，近看看细节，不断切换思维或视角来学习   并发编程可以抽象成三个核心问题: 分工、同步&#x2F;协作、互斥 如果你已经工作了，那么你一定听说过或者正在应用敏捷开发模式来交付日常的工作任务，我们就用你熟悉的流程来解释这三个核心问题 分工 将当前 Sprint 的 Story 拆分成「合适」大小的 Task，并且安排给「合适」的 Team Member 去完成">
 <meta property="og:locale" content="zh_CN">
-<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/team-3393037.jpg">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240002-1603524670758.jpg">
 <meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/42f62cfa83224f5b8735bc03df7deb39.gif">
-<meta property="article:published_time" content="2020-10-24T07:18:55.780Z">
-<meta property="article:modified_time" content="2020-10-24T07:18:55.780Z">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240001.png">
+<meta property="article:published_time" content="2020-10-24T07:31:20.778Z">
+<meta property="article:modified_time" content="2020-10-24T07:31:20.778Z">
 <meta property="article:author" content="Halower">
 <meta property="article:tag" content="并发编程">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/team-3393037.jpg">
+<meta name="twitter:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240002-1603524670758.jpg">
 
 <link rel="canonical" href="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/">
 
@@ -225,7 +226,7 @@
               </span>
               <span class="post-meta-item-text">发表于</span>
 
-              <time title="创建时间：2020-10-24 15:18:55" itemprop="dateCreated datePublished" datetime="2020-10-24T15:18:55+08:00">2020-10-24</time>
+              <time title="创建时间：2020-10-24 15:31:20" itemprop="dateCreated datePublished" datetime="2020-10-24T15:31:20+08:00">2020-10-24</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -249,7 +250,7 @@
 
       
         <p>「横看成岭侧成峰，远近高低各不同」，远看看轮廓，近看看细节，不断切换思维或视角来学习</p>
-<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/team-3393037.jpg" class="" title="img">
+<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240002-1603524670758.jpg" class="">
 
 <p><strong>并发编程可以抽象成三个核心问题: 分工、同步/协作、互斥</strong></p>
 <p>如果你已经工作了，那么你一定听说过或者正在应用敏捷开发模式来交付日常的工作任务，我们就用你熟悉的流程来解释这三个核心问题</p>
@@ -278,7 +279,7 @@
 <p>当任务很大时，由于 IO 干活慢，CPU 干活快，就没必要让 CPU 死等当前的 IO，转而去执行其他指令，这就是<code>榨取剩余价值</code>，如何最大限度的榨取其价值，这就涉及到后续的调优问题，比如多少线程合适等</p>
 <p><strong>分工是设计，同步和互斥是实现</strong>，没有好的设计也就没有好的实现，所以在分工阶段，强烈建议大家勾划草图，了解瓶颈所在，这样才会有更好的实现，后续章节的内容，我也会带领大家画草图，分析问题，逐步养成这个习惯</p>
 <p>本章内容可以用下面的图来简单概括，叶子结点的内容我们会逐步点亮，现阶段不用过分关注(如果你上来就啃 JDK 源码，也许你会痛苦的迷失，并最终放弃你的进阶之路的)</p>
-
+<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240001.png" class="">
 
 <p><strong>理解三大核心问题，你要充分结合生活中的实际，程序中的并发问题，基本上都能在实际生活中找得到原型</strong></p>
 <p>下一篇文章的内容，我们就要聊聊，引起线程安全的三个问题:「可见性，原子性，有序性」，这涉及到 JMM 的一点内容，可以提前了解一下的，这样我们才能更好的碰撞</p>
