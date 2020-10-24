@@ -20,30 +20,43 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="得意时应善待他人，因为你失意时会需要他们">
-<meta property="og:type" content="website">
-<meta property="og:title" content="高谈风月">
-<meta property="og:url" content="http://example.com/index.html">
+  <meta name="description" content="写在前面  生活中你一定听说过——能者多劳 作为 Java 程序员，你一定听过——这个功能请求慢，能加一层缓存或优化一下 SQL 吗？ 看过中国古代神话故事的也一定听过——天上一天，地上一年     一切设计来源于生活，上一章 中有讲过，作为”资本家”，你要尽可能的榨取 CPU，内存与 IO 的剩余价值，但三者完成任务的速度相差很大，CPU &gt; 内存 &gt; IO，CPU 是天，那内存就是">
+<meta property="og:type" content="article">
+<meta property="og:title" content="并发编程三大问题">
+<meta property="og:url" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/index.html">
 <meta property="og:site_name" content="高谈风月">
-<meta property="og:description" content="得意时应善待他人，因为你失意时会需要他们">
+<meta property="og:description" content="写在前面  生活中你一定听说过——能者多劳 作为 Java 程序员，你一定听过——这个功能请求慢，能加一层缓存或优化一下 SQL 吗？ 看过中国古代神话故事的也一定听过——天上一天，地上一年     一切设计来源于生活，上一章 中有讲过，作为”资本家”，你要尽可能的榨取 CPU，内存与 IO 的剩余价值，但三者完成任务的速度相差很大，CPU &gt; 内存 &gt; IO，CPU 是天，那内存就是">
 <meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242008.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242001.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242002.jpg">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242006.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242005.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242003.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242006.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242004.png">
+<meta property="og:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242007-1603538900268.png">
+<meta property="article:published_time" content="2020-10-24T10:55:53.000Z">
+<meta property="article:modified_time" content="2020-10-24T11:41:55.745Z">
 <meta property="article:author" content="Halower">
+<meta property="article:tag" content="并发编程">
 <meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/202010242008.png">
 
-<link rel="canonical" href="http://example.com/">
+<link rel="canonical" href="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/">
 
 
 <script id="page-configurations">
   // https://hexo.io/docs/variables.html
   CONFIG.page = {
     sidebar: "",
-    isHome : true,
-    isPost : false,
+    isHome : false,
+    isPost : true,
     lang   : 'zh-CN'
   };
 </script>
 
-  <title>高谈风月</title>
+  <title>并发编程三大问题 | 高谈风月</title>
   
 
 
@@ -189,9 +202,10 @@
         <div class="content-wrap">
           
 
-          <div class="content index posts-expand">
+          <div class="content post posts-expand">
             
-      
+
+    
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
@@ -207,10 +221,9 @@
       <meta itemprop="name" content="高谈风月">
     </span>
       <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E9%97%AE%E9%A2%98/" class="post-title-link" itemprop="url">并发编程三大问题</a>
-        </h2>
+        <h1 class="post-title" itemprop="name headline">
+          并发编程三大问题
+        </h1>
 
         <div class="post-meta">
             <span class="post-meta-item">
@@ -243,7 +256,7 @@
     <div class="post-body" itemprop="articleBody">
 
       
-          <h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><blockquote>
+        <h2 id="写在前面"><a href="#写在前面" class="headerlink" title="写在前面"></a>写在前面</h2><blockquote>
 <ul>
 <li>生活中你一定听说过——能者多劳</li>
 <li>作为 Java 程序员，你一定听过——这个功能请求慢，能加一层缓存或优化一下 SQL 吗？</li>
@@ -361,205 +374,48 @@
 <li>如果让你写单例，你通常会采用哪种实现？</li>
 </ol>
 
-      
     </div>
 
     
     
     
+        <div class="reward-container">
+  <div>支持不要超过早餐费~</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="https://github.com/halower/vue2-tree/raw/master/src/assets/hello.png" alt="Halower 微信支付">
+        <p>微信支付</p>
+      </div>
+
+  </div>
+</div>
+
+
       <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
+          <div class="post-tags">
+              <a href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag"># 并发编程</a>
+          </div>
 
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/">
+        
 
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://avatars1.githubusercontent.com/u/4995227?s=460&u=f00c38f1f9de1b8ac6eb65f91824fbc34ee44e5d&v=4">
-      <meta itemprop="name" content="Halower">
-      <meta itemprop="description" content="得意时应善待他人，因为你失意时会需要他们">
-    </span>
 
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="高谈风月">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/" class="post-title-link" itemprop="url">并发编程三大核心</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-10-24 18:53:26" itemprop="dateCreated datePublished" datetime="2020-10-24T18:53:26+08:00">2020-10-24</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>「横看成岭侧成峰，远近高低各不同」，远看看轮廓，近看看细节，不断切换思维或视角来学习</p>
-<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240002-1603524670758.jpg" class="">
-
-<p><strong>并发编程可以抽象成三个核心问题: 分工、同步/协作、互斥</strong></p>
-<p>如果你已经工作了，那么你一定听说过或者正在应用敏捷开发模式来交付日常的工作任务，我们就用你熟悉的流程来解释这三个核心问题</p>
-<h2 id="分工"><a href="#分工" class="headerlink" title="分工"></a>分工</h2><blockquote>
-<p>将当前 Sprint 的 Story 拆分成「合适」大小的 Task，并且安排给「合适」的 Team Member 去完成</p>
-</blockquote>
-<p>这里面用了两个「合适」，将 Story 拆分成大小适中，可完成的 Task 是非常重要的。拆分的粒度太粗，导致这个任务完成难度变高，耗时长，不易与其他人配合；拆分的粒度太细，又导致任务太多，不好管理与追踪，浪费精力和资源。(<strong>合适的线程才能更好的完成整块工作，当然一个线程可以轻松搞定的就没必要多线程</strong>)；安排给合适的人员去完成同样重要，<code>UX-UE</code> 问题交给后端人员处理，很显然是有问题的 (<strong>主线程应该做的事交给子线程显然是解决不了问题的，每个线程做正确的事才能发挥作用</strong>)</p>
-<p>关于分工，常见的 Executor，生产者-消费者模式，Fork/Join 等，这都是分工思想的体现</p>
-<h2 id="同步-协作"><a href="#同步-协作" class="headerlink" title="同步/协作"></a>同步/协作</h2><p>任务拆分完毕，我要等张三的任务，张三要等李四的任务，也就是说任务之间存在依赖关系，前面的任务执行完毕，后面的任务才可以执行，人高级在可以通过沟通反复确认，确保自己的任务可以开始执行。<strong>但面对程序，我们需要了解程序的沟通方式，一个线程执行完任务，如何通知后续线程执行</strong></p>
-<p>所有的同步/协作关系我们都可以用你最熟悉的 If-then-else 来表示:</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(前序任务完成)&#123;</span><br><span class="line">    execute();</span><br><span class="line">&#125;<span class="keyword">else</span>&#123;</span><br><span class="line">    wait();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上面的代码就是说:<strong>当某个条件不满足时，线程需要等待；当某个条件满足时，线程需要被唤醒执行</strong>，线程之间的协作可能是主线程与子线程的协作，可能是子线程与子线程的合作， <code>Java SDK </code>中<code> CountDownLatch</code> 和 <code>CyclicBarrier</code> 就是用来解决线程协作问题的</p>
-<h2 id="互斥"><a href="#互斥" class="headerlink" title="互斥"></a>互斥</h2><p><strong>分工和同步强调的是性能，但是互斥是强调正确性</strong>，就是我们常常提到的「线程安全」，当多个线程<strong>同时</strong>访问一个共享变量/成员变量时，就可能发生不确定性，造成不确定性主要是有<code>可见性</code>、<code>原子性</code>、<code>有序性</code>这三大问题，而解决这些问题的核心就是互斥</p>
-<blockquote>
-<h3 id="互斥-1"><a href="#互斥-1" class="headerlink" title="互斥"></a>互斥</h3><p>同一时刻，只允许一个线程访问共享变量</p>
-</blockquote>
-<p>来看下图，主干路就是共享变量，进入主干路一次只能有一辆车，这样你是否理解了呢？「<strong>天下大事，分久必合</strong>」</p>
-<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/42f62cfa83224f5b8735bc03df7deb39.gif" class="" title="img">
-
-<p>同样 <code>Java SDK </code>也有很多互斥的解决方案，比如你马上就能想到 <code>synchronized</code> 关键字，<code>Lock</code>，<code>ThreadLocal</code> 等就是互斥的解决方案</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>资本家疯狂榨取劳动工人的剩余价值，获得最大收益。当你面对 CPU，内存，IO 这些劳动工人时，你就是那个资本家，你要思考如何<code>充分榨取</code>它们的价值</p>
-<blockquote>
-<p>当一个工人能干的活，绝不让两个人来干(单线程能满足就没必要为了多线程)<br>当多个工人干活时，就要让他们分工明确，合作顺畅，没矛盾</p>
-</blockquote>
-<p>当任务很大时，由于 IO 干活慢，CPU 干活快，就没必要让 CPU 死等当前的 IO，转而去执行其他指令，这就是<code>榨取剩余价值</code>，如何最大限度的榨取其价值，这就涉及到后续的调优问题，比如多少线程合适等</p>
-<p><strong>分工是设计，同步和互斥是实现</strong>，没有好的设计也就没有好的实现，所以在分工阶段，强烈建议大家勾划草图，了解瓶颈所在，这样才会有更好的实现，后续章节的内容，我也会带领大家画草图，分析问题，逐步养成这个习惯</p>
-<p>本章内容可以用下面的图来简单概括，叶子结点的内容我们会逐步点亮，现阶段不用过分关注(如果你上来就啃 <code>JDK</code> 源码，也许你会痛苦的迷失，并最终放弃你的进阶之路的)</p>
-<img src="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/202010240001.png" class="">
-
-<p><strong>理解三大核心问题，你要充分结合生活中的实际，程序中的并发问题，基本上都能在实际生活中找得到原型</strong></p>
-<p>下一篇文章的内容，我们就要聊聊，引起线程安全的三个问题:「可见性，原子性，有序性」，这涉及到 <code>JMM</code> 的一点内容，可以提前了解一下的，这样我们才能更好的碰撞</p>
-<h2 id="灵魂追问"><a href="#灵魂追问" class="headerlink" title="灵魂追问"></a>灵魂追问</h2><ol>
-<li>工作中多线程编程的场景多吗？</li>
-<li>想到多线程，只会想到 synchronized 吗？</li>
-<li>Java 并发包各个类，你有了解底层实现和设计理念吗？</li>
-</ol>
-
-      
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/" rel="prev" title="并发编程三大核心">
+      <i class="fa fa-chevron-left"></i> 并发编程三大核心
+    </a></div>
+      <div class="post-nav-item"></div>
     </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
       </footer>
+    
   </article>
   
   
-  
-
-      
-  
-  
-  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/24/hello-world/">
-
-    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
-      <meta itemprop="image" content="https://avatars1.githubusercontent.com/u/4995227?s=460&u=f00c38f1f9de1b8ac6eb65f91824fbc34ee44e5d&v=4">
-      <meta itemprop="name" content="Halower">
-      <meta itemprop="description" content="得意时应善待他人，因为你失意时会需要他们">
-    </span>
-
-    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
-      <meta itemprop="name" content="高谈风月">
-    </span>
-      <header class="post-header">
-        <h2 class="post-title" itemprop="name headline">
-          
-            <a href="/2020/10/24/hello-world/" class="post-title-link" itemprop="url">Hello World</a>
-        </h2>
-
-        <div class="post-meta">
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-calendar"></i>
-              </span>
-              <span class="post-meta-item-text">发表于</span>
-
-              <time title="创建时间：2020-10-24 14:37:00" itemprop="dateCreated datePublished" datetime="2020-10-24T14:37:00+08:00">2020-10-24</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/web%E5%89%8D%E7%AB%AF/" itemprop="url" rel="index"><span itemprop="name">web前端</span></a>
-                </span>
-            </span>
-
-          
-
-        </div>
-      </header>
-
-    
-    
-    
-    <div class="post-body" itemprop="articleBody">
-
-      
-          <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
-
-      
-    </div>
-
-    
-    
-    
-      <footer class="post-footer">
-        <div class="post-eof"></div>
-      </footer>
-  </article>
-  
-  
-  
-
-
   
 
 
@@ -612,6 +468,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%86%99%E5%9C%A8%E5%89%8D%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">写在前面</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%AF%E8%A7%81%E6%80%A7"><span class="nav-number">1.1.</span> <span class="nav-text">可见性</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%B0%8F%E6%8F%90%E7%A4%BA"><span class="nav-number">1.1.1.</span> <span class="nav-text">小提示</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E5%AD%90%E6%80%A7"><span class="nav-number">1.2.</span> <span class="nav-text">原子性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%89%E5%BA%8F%E6%80%A7"><span class="nav-number">1.3.</span> <span class="nav-text">有序性</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">2.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%81%B5%E9%AD%82%E8%BF%BD%E9%97%AE"><span class="nav-number">3.</span> <span class="nav-text">灵魂追问</span></a></li></ol></div>
       </div>
       <!--/noindex-->
 
