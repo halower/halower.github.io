@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 5.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="上一篇文章 可见性有序性，Happens-before来搞定，解决了并发三大问题中的两个，今天我们就聊聊如何解决原子性问题  原子性问题的源头就是 线程切换，但在多核 CPU 的大背景下，不允许线程切换是不可能的，正所谓「魔高一尺，道高一丈」，新规矩来了:  互斥: 同一时刻只有一个线程执行  实际上，上面这句话的意思是: 对共享变量的修改是互斥的，也就是说线程 A 修改共享变量时其他线程不能修改">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解决原子性问题？你首先需要的是宏观理解">
+<meta property="og:url" content="http://example.com/2020/10/24/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/index.html">
+<meta property="og:site_name" content="高谈风月">
+<meta property="og:description" content="上一篇文章 可见性有序性，Happens-before来搞定，解决了并发三大问题中的两个，今天我们就聊聊如何解决原子性问题  原子性问题的源头就是 线程切换，但在多核 CPU 的大背景下，不允许线程切换是不可能的，正所谓「魔高一尺，道高一丈」，新规矩来了:  互斥: 同一时刻只有一个线程执行  实际上，上面这句话的意思是: 对共享变量的修改是互斥的，也就是说线程 A 修改共享变量时其他线程不能修改">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010243001.png">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244002.png">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244003.png">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244004.png">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244005.png">
+<meta property="og:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244006.png">
+<meta property="article:published_time" content="2020-10-24T12:51:21.000Z">
+<meta property="article:modified_time" content="2020-10-24T13:22:05.100Z">
+<meta property="article:author" content="Halower">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010243001.png">
+
+<link rel="canonical" href="http://example.com/2020/10/24/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>解决原子性问题？你首先需要的是宏观理解 | 高谈风月</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?83089c8ff02454eb8f79b95a96dcbe6b";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">高谈风月</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+      <p class="site-subtitle" itemprop="description">不共青山一笑，不与黄花一醉</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签<span class="badge">1</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类<span class="badge">1</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档<span class="badge">5</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/10/24/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="https://avatars1.githubusercontent.com/u/4995227?s=460&u=f00c38f1f9de1b8ac6eb65f91824fbc34ee44e5d&v=4">
+      <meta itemprop="name" content="Halower">
+      <meta itemprop="description" content="得意时应善待他人，因为你失意时会需要他们">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="高谈风月">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          解决原子性问题？你首先需要的是宏观理解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2020-10-24 20:51:21 / 修改时间：21:22:05" itemprop="dateCreated datePublished" datetime="2020-10-24T20:51:21+08:00">2020-10-24</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/java/" itemprop="url" rel="index"><span itemprop="name">java</span></a>
+                </span>
+            </span>
+
+          
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>上一篇文章 <strong>可见性有序性，Happens-before来搞定</strong>，解决了并发三大问题中的两个，今天我们就聊聊如何解决原子性问题</p>
+<p><img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010243001.png" alt="img"></p>
+<p>原子性问题的源头就是 <strong>线程切换</strong>，但在多核 CPU 的大背景下，不允许线程切换是不可能的，正所谓「魔高一尺，道高一丈」，新规矩来了:</p>
+<blockquote>
+<p>互斥: 同一时刻只有一个线程执行</p>
+</blockquote>
+<p>实际上，上面这句话的意思是: 对共享变量的修改是互斥的，也就是说线程 A 修改共享变量时其他线程不能修改，这就不存在操作被打断的问题了，那么如何实现互斥呢？</p>
+<h2 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h2><p>对并发有所了解的小伙伴马上就能想到 <strong>锁</strong> 这个概念，并且你的第一反应很可能就是使用 synchronized，这里列出来你常见的 synchronized 的三种用法:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ThreeSync</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Object object = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">normalSyncMethod</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="comment">//临界区</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">staticSyncMethod</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="comment">//临界区</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">syncBlockMethod</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">synchronized</span> (object)&#123;</span><br><span class="line">			<span class="comment">//临界区</span></span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>三种 synchronized 锁的内容有一些差别:</p>
+<ul>
+<li>对于普通同步方法，锁的是当前实例对象，通常指 this</li>
+<li>对于静态同步方法，锁的是当前类的 Class 对象，如 ThreeSync.class</li>
+<li>对于同步方法块，锁的是 synchronized 括号内的对象</li>
+</ul>
+<p>我特意在三种 synchronized 代码里面添加了「临界区」字样的注释，那什么是临界区呢？</p>
+<blockquote>
+<p>临界区: 我们把需要互斥执行的代码看成为临界区</p>
+</blockquote>
+<p>说到这里，和大家串的知识都是表层认知，<strong>如何用锁保护有效的临界区才是关键</strong>，这直接关系到你是否会写出并发的 bug，了解过本章内容后，你会发现无论是隐式锁/内置锁 (synchronized) 还是显示锁 (Lock) 的使用都是在找寻这种关系，关系对了，一切就对了，且看</p>
+<p>上面锁的三种方式都可以用下图来表达:</p>
+<p><img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244002.png"></p>
+<p>线程进入临界区之前，尝试加锁 lock()， 加锁成功，则进入临界区(对共享变量进行修改)，持有锁的线程执行完临界区代码后，执行 unlock()，释放锁。针对这个模型，大家经常用抢占厕所坑位来形容:</p>
+<p><img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244003.png"></p>
+<p>在学习 Java 早期我就是这样记忆与理解锁的，但落实到代码上，我们很容易忽略两点:</p>
+<ol>
+<li>我们锁的是什么？</li>
+<li>我们保护的又是什么？</li>
+</ol>
+<p>将这两句话联合起来就是你的锁能否对临界区的资源起到保护的作用？所以我们要将上面的模型进一步细化<img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244004.png"></p>
+<p>现实中，<strong>我们都知道自己的锁来锁自己需要保护的东西</strong> ，这句话翻译成你的行动语言之后你已经明确知道了:</p>
+<ol>
+<li>你锁的是什么</li>
+<li>你保护的资源是什么</li>
+</ol>
+<p>CPU 可不像我们大脑这么智能，我们要明确说明我们锁的是什么，我们要保护的资源是什么，它才会用锁保护我们想要保护的资源(共享变量)</p>
+<p>拿上图来说，资源 R (共享变量) 就是我们要保护的资源，所以我们就要创建资源 R 的锁来保护资源 R，细心的朋友可能发现上图几个问题:</p>
+<blockquote>
+<p>LR 和 R 之间有明确的指向关系<br>我们编写程序时，往往脑子中的模型是对的，但是忽略了这个指向关系，导致自己的锁不能起到保护资源 R 的作用(用别人家的锁保护自己家的东西或用自己家的锁保护别人家的东西)，最终引发并发 bug，<strong>所以在你勾画草图时，要明确找到这个关系</strong></p>
+</blockquote>
+<blockquote>
+<p>左图 LR 虚线指向了非共享变量<br>我们写程序的时候很容易这么做，不确定哪个是要保护的资源，直接大杂烩，用 LR 将要保护的资源 R 和没必要保护的非共享变量一起保护起来了，举两个例子来说你就明白这么做的坏处了</p>
+</blockquote>
+<ol>
+<li>编写串行程序时，是不建议 try…catch 整个方法的，这样如果出现问是很难定位的，道理一样，我们要用锁精确的锁住我们要保护的资源就够了，其他无意义的资源是不要锁的</li>
+<li>锁保护的东西越多，临界区就越大，一个线程从走入临界区到走出临界区的时间就越长，这就让其他线程等待的时间越久，这样并发的效率就有所下降，其实这是涉及到锁粒度的问题，后续也都会做相关说明</li>
+</ol>
+<p>作为程序猿还是简单拿代码说明一下心里比较踏实，且看:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ValidLock</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Object object = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">int</span> count;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">badSync</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="comment">//其他与共享变量count无关的业务逻辑</span></span><br><span class="line">		count++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">goodSync</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="comment">//其他与共享变量count无关的业务逻辑</span></span><br><span class="line">		<span class="keyword">synchronized</span> (object)&#123;</span><br><span class="line">			count++;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><em>这里并不是说 synchronized 放在方法上不好，只是提醒大家用合适的锁的粒度才会更高效</em></p>
+<p>在计数器程序例子中，我们会经常这么写:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SafeCounter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">int</span> count;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">counter</span><span class="params">()</span></span>&#123;</span><br><span class="line">		count++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">int</span> <span class="title">getCount</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> count;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>下图就是上面程序的模型展示:</p>
+<p><img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244005.png"></p>
+<p>这里我们锁的是 this，可以保护 this.count。但有些同学认为 getCount 方法没必要加 synchronized 关键字，因为是读的操作，不会对共享变量做修改，如果不加上 synchronized 关键字，就违背了我们上一篇文章 happens-before 规则中的监视器锁规则:</p>
+<p>对一个锁的解锁 happens-before 于随后对这个锁的加锁<br>也就是说对 count 的写很可能对 count 的读不可见，也就导致脏读</p>
+<p>上面我们看到一个 this 锁是可以保护多个资源的，那用多个不同的锁保护一个资源可以吗？来看一段程序:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">UnsafeCounter</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">int</span> count;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title">counter</span><span class="params">()</span></span>&#123;</span><br><span class="line">		count++;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">synchronized</span> <span class="keyword">int</span> <span class="title">calc</span><span class="params">()</span></span>&#123;</span><br><span class="line">		<span class="keyword">return</span> count++;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>睁大眼睛仔细看，一个锁的是 this，一个锁的是 UnsafeCounter.class, 他们都想保护共享变量 count，你觉得如何？下图就是行面程序的模型展示:</p>
+<p><img src="/_posts/%E8%A7%A3%E5%86%B3%E5%8E%9F%E5%AD%90%E6%80%A7%E9%97%AE%E9%A2%98%EF%BC%9F%E4%BD%A0%E9%A6%96%E5%85%88%E9%9C%80%E8%A6%81%E7%9A%84%E6%98%AF%E5%AE%8F%E8%A7%82%E7%90%86%E8%A7%A3/202010244006.png"></p>
+<p>两个临界区是用两个不同的锁来保护的，所以临界区没有互斥关系，也就不能保护 count，所以这样加锁是无意义的</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ol>
+<li>解决原子性问题，就是要互斥，就是要保证中间状态对外不可见</li>
+<li>锁是解决原子性问题的关键，明确知道我们锁的是什么，要保护的资源是什么，更重要的要知道你的锁能否保护这个受保护的资源(图中的箭头指向)</li>
+<li>有效的临界区是一个入口和一个出口，多个临界区保护一个资源，也就是一个资源有多个并行的入口和多个出口，这就没有起到互斥的保护作用，临界区形同虚设</li>
+<li>锁自己家门能保护资源就没必要锁整个小区，如果锁了整个小区，这严重影响其他业主的活动(锁粒度的问题)</li>
+</ol>
+<p>本文以 synchronized 锁举例来说明如何解决原子性问题，主要是帮助大家建立宏观的理念，用于解决原子性问题，这样后续你看到无论什么锁，只要脑海中回想起本节说明的模型，你会发现都是换汤不换药，学习起来就非常轻松了.</p>
+<p>到这里并发的三大问题 有序性，可见性，原子性都有了解决方案，这是远看并发，让大家有了宏观的概念；但面试和实战都是讲求细节的，接下来我们由远及近，逐步看并发的细节，顺带说明那些面试官经常会问到的问题</p>
+<h2 id="灵魂追问"><a href="#灵魂追问" class="headerlink" title="灵魂追问"></a>灵魂追问</h2><ol>
+<li>多个锁锁一个资源一定会有问题吗？</li>
+<li>什么时候需要锁小区，而不能锁某一户呢？</li>
+<li>银行转账，两人互转和别人给自己转，用什么样的锁粒度合适呢？</li>
+</ol>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>支持不要超过早餐费~</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    打赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="https://github.com/halower/vue2-tree/raw/master/src/assets/hello.png" alt="Halower 微信支付">
+        <p>微信支付</p>
+      </div>
+
+  </div>
+</div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B/" rel="tag"># 并发编程</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/10/24/%E6%9C%89%E5%BA%8F%E6%80%A7%E5%8F%AF%E8%A7%81%E6%80%A7%EF%BC%8CHappens-before%E6%9D%A5%E6%90%9E%E5%AE%9A/" rel="prev" title="有序性可见性，Happens-before来搞定">
+      <i class="fa fa-chevron-left"></i> 有序性可见性，Happens-before来搞定
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/10/24/%E9%9D%A2%E8%AF%95volatile%E5%85%B3%E9%94%AE%E5%AD%97%E6%97%B6%EF%BC%8C%E6%88%91%E4%BB%AC%E5%BA%94%E8%AF%A5%E5%85%B7%E5%A4%87%E5%93%AA%E4%BA%9B%E8%B0%88%E8%B5%84%EF%BC%9F/" rel="next" title="面试volatile关键字时，我们应该具备哪些谈资？">
+      面试volatile关键字时，我们应该具备哪些谈资？ <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%94%81"><span class="nav-number">1.</span> <span class="nav-text">锁</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%80%BB%E7%BB%93"><span class="nav-number">2.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%81%B5%E9%AD%82%E8%BF%BD%E9%97%AE"><span class="nav-number">3.</span> <span class="nav-text">灵魂追问</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="Halower"
+      src="https://avatars1.githubusercontent.com/u/4995227?s=460&u=f00c38f1f9de1b8ac6eb65f91824fbc34ee44e5d&v=4">
+  <p class="site-author-name" itemprop="name">Halower</p>
+  <div class="site-description" itemprop="description">得意时应善待他人，因为你失意时会需要他们</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">5</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">1</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/halower" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;halower" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:halor@foxmail.com" title="E-Mail → mailto:halor@foxmail.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-link fa-fw"></i>
+      大学时候的根据地
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://www.cnblogs.com/rohelm" title="http:&#x2F;&#x2F;www.cnblogs.com&#x2F;rohelm" rel="noopener" target="_blank">博客园</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Halower</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+</body>
+</html>
