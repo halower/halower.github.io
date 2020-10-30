@@ -1,6 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title>springboot瘦身</title>
+    <url>/2020/10/30/springboot%E7%98%A6%E8%BA%AB/</url>
+    <content><![CDATA[<blockquote>
+<p>鉴于网上很多代码都是同一篇文章转载过来的基本验证无效，以下是经过项目测试后可用的方案</p>
+</blockquote>
+<figure class="highlight groovy"><table><tr><td class="code"><pre><span class="line">jar.doFirst &#123;</span><br><span class="line">    manifest &#123;</span><br><span class="line">        attributes <span class="string">&#x27;Class-Path&#x27;</span>: configurations.compileClasspath.files.collect &#123; <span class="string">&quot;lib&quot;</span>+File.separator+<span class="string">&quot;$it.name&quot;</span> &#125;.join(<span class="string">&#x27; &#x27;</span>)</span><br><span class="line">        attributes <span class="string">&#x27;Main-Class&#x27;</span>:  <span class="string">&#x27;com.halower.dynamicdb.DynamicDatasourceLab&#x27;</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">task thinJar(<span class="attr">type:</span> Copy) &#123;</span><br><span class="line">    <span class="keyword">def</span> dir = <span class="keyword">new</span> File( <span class="string">&quot;$buildDir&quot;</span>+File.separator+<span class="string">&quot;libs&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span>(!dir.exists()) dir.mkdir()</span><br><span class="line">    dir.eachDir&#123;d -&gt; d.delete()&#125;</span><br><span class="line">    from configurations.compileClasspath</span><br><span class="line">    into <span class="string">&quot;$buildDir&quot;</span>+File.separator+<span class="string">&quot;libs&quot;</span>+File.separator+<span class="string">&quot;lib&quot;</span></span><br><span class="line">    print(<span class="string">&#x27;依赖包提取完成&#x27;</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">jar.enabled = <span class="literal">true</span></span><br><span class="line">bootJar.enabled = <span class="literal">false</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">bootJar &#123;</span><br><span class="line">    dependsOn thinJar</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+]]></content>
+      <categories>
+        <category>java</category>
+        <category>gradle</category>
+      </categories>
+      <tags>
+        <tag>springboot</tag>
+        <tag>gradle</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>并发编程三大核心</title>
     <url>/2020/10/24/%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E4%B8%89%E5%A4%A7%E6%A0%B8%E5%BF%83/</url>
     <content><![CDATA[<p>「横看成岭侧成峰，远近高低各不同」，远看看轮廓，近看看细节，不断切换思维或视角来学习</p>
